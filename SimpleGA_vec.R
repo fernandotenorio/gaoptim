@@ -1,13 +1,13 @@
-simpleGA = function (f, lowerBounds, upperBounds,  popSize = 100, mutRate = 0.05, cxRate = 0.9, eliteRate = 0.2)
+simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, eliteRate = 0.2)
 {		
 		population = NULL		
 		bestFitnessVec = numeric()
 		meanFitnessVec = numeric()
 		elite = max(0, 2 * as.integer(eliteRate * popSize * 0.5))
 		popSize = 2 * as.integer(popSize * 0.5)
-		nvars = length(lowerBounds)
+		nvars = length(lb)
 		bestCX = rep(0, nvars)
-		bestFit = NA
+		bestFit = NULL
 		mutations = as.integer(mutRate * popSize * nvars)
 		
 		mutate = function(x)
@@ -62,14 +62,12 @@ simpleGA = function (f, lowerBounds, upperBounds,  popSize = 100, mutRate = 0.05
 			if (is.null (population))
 			{
 				eps = 10E-6
-				if (length(lowerBounds) != length(upperBounds))
-					stop('Boundary vectors must have the same length.')
-				if (length(lowerBounds) == 0 || length(upperBounds) == 0)
-					stop('Boundary vectors are empty.')
-				if (any (is.na (lowerBounds)) || any( is.na (upperBounds)))
-					stop('NA\'s not allowed in Boundary vectors.')
-				if ( any(upperBounds - lowerBounds < eps) )
-					stop('Small difference detected int upperBounds - lowerBounds. ')
+				if (length(lb) != length(ub))
+					stop('Domain vectors must have the same length.\n')
+				if (any (is.na (lb)) || any( is.na (ub)))
+					stop('NA\'s not allowed in Domain vectors.\n')
+				if ( any(ub - lb < eps) )
+					stop('Small difference detected int Domain vectors.\n')
 							
 			    n = popSize * nvars
 				population <<- matrix (runif (n), nrow = popSize)				
@@ -80,13 +78,13 @@ simpleGA = function (f, lowerBounds, upperBounds,  popSize = 100, mutRate = 0.05
 		
 		do.evolve = function()
 		{
-			decodedPop = decode(population, lowerBounds, upperBounds)
-			fitnessVec = apply(decodedPop, 1, f)
+			decodedPop = decode(population, lb, ub)
+			fitnessVec = apply(decodedPop, 1, FUN)
 			this.best = max(fitnessVec)
 			bestFitnessVec <<- c(bestFitnessVec, this.best)
 			meanFitnessVec <<- c(meanFitnessVec, mean(fitnessVec))
 			
-			if (is.na(bestFit) || (this.best > bestFit))
+			if (is.null(bestFit) || (this.best > bestFit))
             {
 				bestFit <<- this.best
 				bestCX <<- decodedPop[which(fitnessVec == this.best), ]
@@ -116,25 +114,30 @@ simpleGA = function (f, lowerBounds, upperBounds,  popSize = 100, mutRate = 0.05
 		objs = list (		
 		get.population = function()
 		{
-			decode(population, lowerBounds, upperBounds)
+			decode(population, lb, ub)
 		},								
 		
 		get.bestfit.hist = function()
 		{
 			bestFitnessVec
 		},
+		
 		get.meanfit.hist = function()
 		{
 			meanFitnessVec
 		},
-		get.best = function()
+		
+		get.best.cx = function()
         {
 			bestCX
         },
         
-        evolve = function(gens = 50)
+        evolve = function(h)
         {        	
-        		invisible(replicate(gens, do.evolve()))
+        		if (missing(h))
+        			stop('Please specify the number of generations to evolve.\n')
+        			
+        		invisible(replicate(h, do.evolve()))
         }
         
 	)
