@@ -1,4 +1,4 @@
-simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, eliteRate = 0.2)
+simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, eliteRate = 0.4)
 {		
 		population = NULL		
 		bestFitnessVec = numeric()
@@ -10,7 +10,10 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 		bestFit = NULL
 		mutations = as.integer(mutRate * popSize * nvars)
     iter = 0
-		
+    
+    # pre-alocando e reciclando newPopulation a cada iteracao
+		newPopulation = matrix(0, nrow = popSize, ncol = nvars)
+    
 		mutate = function(x)
 		{			
 			rows = sample(1:nrow(x), mutations, rep = TRUE)
@@ -74,7 +77,7 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 				if ( any(ub - lb < eps) )
 					stop('Small difference detected int Domain vectors.\n')
 							
-			    n = popSize * nvars
+			  n = popSize * nvars
 				population <<- matrix (runif (n), nrow = popSize)				
 			}			
 		}
@@ -83,8 +86,7 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 		
 		do.evolve = function()
 		{
-      iter <<- iter + 1
-      cat(iter, '\n')
+      iter <<- iter + 1      
 			decodedPop = decode(population, lb, ub)
 			fitnessVec = apply(decodedPop, 1, FUN)
 			this.best = max(fitnessVec)			
@@ -96,8 +98,7 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 				bestFit <<- this.best
 				bestCX <<- decodedPop[which(fitnessVec == this.best), ]
       }
-
-			newPopulation = matrix(0, nrow = popSize, ncol = nvars)
+			
 			nLeft = popSize
 			
 			if (elite > 0)
@@ -152,4 +153,16 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 	)
 	
 	objs
+}
+
+run.test  = function()
+{
+  f = function(x)sum(x^2)
+  ga = simpleGA(f, rep(0, 10), rep(10, 10), popSize = 500, mutRate = 0.01, eliteRate = 0.4)
+  tempo = system.time(ga$evolve(h = 500))
+  print(tempo)
+  plot(ga$get.bestfit.hist(), type = 'l', col = 'steelblue', lwd = 2, main = body(f), 
+       ylab = 'Fitness', xlab = 'Generation')
+  lines(ga$get.meanfit.hist(), col = 'tomato', lwd = 2)
+  grid(col = 1)
 }
