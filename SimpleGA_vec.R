@@ -1,4 +1,5 @@
-simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, eliteRate = 0.4)
+simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, eliteRate = 0.4,
+                     selection = c('fitness', 'random'))
 {		
 		population = NULL		
 		bestFitnessVec = numeric()
@@ -10,6 +11,8 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
 		bestFit = NULL
 		mutations = as.integer(mutRate * popSize * nvars)
     iter = 0
+        
+    selection.type = switch(match.arg(selection), fitness = 'fitness', random = 'random')
     
     # pre-alocando e reciclando newPopulation a cada iteracao
 		newPopulation = matrix(0, nrow = popSize, ncol = nvars)
@@ -108,8 +111,15 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
 				newPopulation[1:elite, ] = population[order(fitnessVec, decreasing = TRUE)[1:elite], ] 
 			}
 			
-			# crossover
-			popIdxs = sample(1:popSize, nLeft, replace = TRUE, prob = fitnessVec)
+			# crossover selection
+      if (identical(selection.type, 'fitness'))
+        probVec = fitnessVec
+      else if (identical(selection.type, 'random'))
+        probVec = NULL
+      else
+        stop('Unknow selection type.\n')
+      
+			popIdxs = sample(1:popSize, nLeft, replace = TRUE, prob = probVec)
 			popIdxsM = matrix(popIdxs, ncol = 2, byrow = T) 
 			beta = 0.5
 			
@@ -158,7 +168,8 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
 run.test  = function()
 {
   f = function(x)sum(x^2)
-  ga = simpleGA(f, rep(0, 10), rep(10, 10), popSize = 500, mutRate = 0.01, eliteRate = 0.4)
+  ga = simpleGA(f, rep(0, 10), rep(10, 10), popSize = 500, mutRate = 0.01, eliteRate = 0.4, 
+                selection = 'random')
   tempo = system.time(ga$evolve(h = 500))
   print(tempo)
   plot(ga$get.bestfit.hist(), type = 'l', col = 'steelblue', lwd = 2, main = body(f), 
