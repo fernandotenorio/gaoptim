@@ -70,7 +70,7 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 				if (length(lb) != length(ub))
 					stop('Domain vectors must have the same length.\n')
 				if (any (is.na (lb)) || any( is.na (ub)))
-					stop('NA\'s not allowed in Domain vectors.\n')
+					stop('Missing values not allowed in Domain vectors.\n')
 				if ( any(ub - lb < eps) )
 					stop('Small difference detected int Domain vectors.\n')
 							
