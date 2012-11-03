@@ -1,5 +1,5 @@
 simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, eliteRate = 0.4,
-                     selection = c('fitness', 'random'))
+                     selection = c('fitness', 'uniform'))
 {		
 		population = NULL		
 		bestFitnessVec = numeric()
@@ -12,7 +12,7 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
 		mutations = as.integer(mutRate * popSize * nvars)
     iter = 0
         
-    selection.type = switch(match.arg(selection), fitness = 'fitness', random = 'random')
+    selection.type = switch(match.arg(selection), fitness = 'fitness', uniform = 'uniform')
     
     # pre-alocando e reciclando newPopulation a cada iteracao
 		newPopulation = matrix(0, nrow = popSize, ncol = nvars)
@@ -114,7 +114,7 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
 			# crossover selection
       if (identical(selection.type, 'fitness'))
         probVec = fitnessVec
-      else if (identical(selection.type, 'random'))
+      else if (identical(selection.type, 'uniform'))
         probVec = NULL
       else
         stop('Unknow selection type.\n')
@@ -169,7 +169,7 @@ run.test  = function()
 {
   f = function(x)sum(x^2)
   ga = simpleGA(f, rep(0, 10), rep(10, 10), popSize = 500, mutRate = 0.01, eliteRate = 0.4, 
-                selection = 'random')
+                selection = 'fitness')
   tempo = system.time(ga$evolve(h = 500))
   print(tempo)
   plot(ga$get.bestfit.hist(), type = 'l', col = 'steelblue', lwd = 2, main = body(f), 
