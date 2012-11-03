@@ -9,6 +9,7 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 		bestCX = rep(0, nvars)
 		bestFit = NULL
 		mutations = as.integer(mutRate * popSize * nvars)
+    iter = 0
 		
 		mutate = function(x)
 		{			
@@ -34,7 +35,11 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 		}
 		
 		extrapolationCrossover = function(cr1, cr2, beta)
-		{						
+		{								
+		    prob = runif(1)
+		    if (prob > cxRate)                  
+		    	return(matrix(c(cr1, cr2), nrow = 2, byrow = T))
+		    		    	
 			n = length(cr1)
 			i = sample(1:n, 1)
 			
@@ -78,17 +83,19 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 		
 		do.evolve = function()
 		{
+      iter <<- iter + 1
+      cat(iter, '\n')
 			decodedPop = decode(population, lb, ub)
 			fitnessVec = apply(decodedPop, 1, FUN)
-			this.best = max(fitnessVec)
-			bestFitnessVec <<- c(bestFitnessVec, this.best)
-			meanFitnessVec <<- c(meanFitnessVec, mean(fitnessVec))
+			this.best = max(fitnessVec)			
+      bestFitnessVec[iter] <<- this.best			
+      meanFitnessVec[iter] <<- mean(fitnessVec)
 			
 			if (is.null(bestFit) || (this.best > bestFit))
-            {
+      {
 				bestFit <<- this.best
 				bestCX <<- decodedPop[which(fitnessVec == this.best), ]
-            }
+      }
 
 			newPopulation = matrix(0, nrow = popSize, ncol = nvars)
 			nLeft = popSize
@@ -128,17 +135,19 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.05, cxRate = 0.9, 
 		},
 		
 		get.best.cx = function()
-        {
+    {
 			bestCX
-        },
+    },
         
-        evolve = function(h)
-        {        	
-        		if (missing(h))
-        			stop('Please specify the number of generations to evolve.\n')
-        			
-        		invisible(replicate(h, do.evolve()))
-        }
+		evolve = function(h)
+		{        	
+		  if (missing(h))
+		    stop('Please specify the number of generations to evolve.\n')
+		  
+      length(bestFitnessVec) = length(bestFitnessVec) + h
+		  length(meanFitnessVec) = length(meanFitnessVec) + h
+		  invisible(replicate(h, do.evolve()))
+		}
         
 	)
 	
