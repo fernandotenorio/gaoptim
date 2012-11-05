@@ -7,7 +7,7 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
   	popSize = 2 * as.integer(popSize * 0.5)
   	bestCX = rep(0, n)
   	bestFit = NULL
-	mutations = as.integer(mutRate * popSize)
+	mutations = max(as.integer(mutRate * popSize), 1)
   	iter = 0
 	newPopulation = matrix(0, nrow = popSize, ncol = n)
 	
@@ -50,6 +50,7 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
 		tempCol = M[extM1]
 		M[extM1] = M[extM2]
 		M[extM2] = tempCol
+		
 		M
 	}	
 
@@ -161,9 +162,8 @@ get.circle.cities = function(n, R = 100)
 	pontos
 }
 
-plot.circle = function(n, R)
+plot.circle = function(pontos)
 {
-	pontos = get.circle.cities(n, R)
 	xp = numeric()
 	yp = numeric()
 	for (i in 1:length(pontos))
@@ -202,3 +202,29 @@ get.distance = function(pontos, perm)
 
 }
 ####################################################################
+
+# TEST TSP
+
+cities = 15
+R = 100
+pop = 50
+
+pontos = get.circle.cities(cities, R)
+plot.circle(pontos)
+dist = get.distance(pontos, 1:cities)
+cat('Minimum distance: ', dist, '\n')
+
+heur = function(perm)
+{
+	1/get.distance(pontos, perm)
+}
+
+gap = simpleGAP(heur, cities, popSize = pop, mutRate = 0.2, eliteRate = 0.5)
+gap$evolve(h = 100)
+cat('GAP distance: ', 1/max(gap$get.bestfit.hist()), '\n')
+plot(gap$get.bestfit.hist(), type = 'l', col = 'red', main = paste('TSP -', cities, 'cities'))
+lines(gap$get.meanfit.hist(), type = 'l', col = 'navy')
+grid(col = 1)
+
+
+
