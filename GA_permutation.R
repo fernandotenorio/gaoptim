@@ -143,3 +143,62 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
 }
 
 
+# TSP cidades em volta de circunferencia
+####################################################################
+get.circle.cities = function(n, R = 100)
+{
+	delta = 360/n
+	angs = seq(0, 360 - delta, length = n)
+	angs	
+	
+	pontos = vector(mode = "list", length = n)
+	
+	for (i in 1:n)
+	{
+		rad = angs[i] * pi/180.0
+		pontos[[i]] = list(x = R * sin(rad), y = R * cos(rad))
+	}
+	pontos
+}
+
+plot.circle = function(n, R)
+{
+	pontos = get.circle.cities(n, R)
+	xp = numeric()
+	yp = numeric()
+	for (i in 1:length(pontos))
+	{
+		plot(-R:R, -R:R, type = 'n')
+		xp = c(xp, pontos[[i]]$x)
+		yp = c(yp, pontos[[i]]$y)
+	
+	}
+	points(xp, yp, col = 'red', cex = 2)
+}
+
+get.distance = function(pontos, perm)
+{
+	dist = 0.0
+	for (i in 1:(length(perm) - 1))
+	{
+		idx1 = perm[i]
+		idx2 = perm[i + 1]
+		x1 = pontos[[idx1]]$x
+		y1 = pontos[[idx1]]$y
+		x2 = pontos[[idx2]]$x
+		y2 = pontos[[idx2]]$y
+
+		dist = dist + sqrt((x1 - x2)^2 + (y1 - y2)^2)
+	}
+
+	idxf = tail(perm, 1)
+	xf = pontos[[idxf]]$x
+	yf = pontos[[idxf]]$y
+	idxi = perm[1]
+	xi = pontos[[idxi]]$x
+	yi = pontos[[idxi]]$y
+
+	dist + sqrt((xf - xi)^2 + (yf - yi)^2)
+
+}
+####################################################################
