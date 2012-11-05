@@ -1,4 +1,4 @@
-simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, eliteRate = 0.4,
+simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.95, eliteRate = 0.4,
                      selection = c('fitness', 'uniform'))
 {		
   population = NULL		
