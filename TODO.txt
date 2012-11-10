@@ -1,4 +1,1 @@
-1-optional custom crossover operator as arg
-2-optional custom mutation operator as arg
-3-optional chromossomes arg to start population
-4-track generations progress in some custom way (monitor function)
+1-track generations progress in some custom way (monitor function)
