@@ -1,5 +1,6 @@
 GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, eliteRate = 0.4,
-                     selection = c('fitness', 'uniform'), crossover = c('blend'), mutation = c('noise'))
+                     selection = c('fitness', 'uniform'), crossover = c('blend', 'two.points'),
+                     mutation = c('noise'))
 {		
   population = NULL		
   bestFitnessVec = numeric()
@@ -13,47 +14,26 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   iter = 0
   newPopulation = matrix(0, nrow = popSize, ncol = nvars)
   
+  ############### BEG selection function definitions #########################################
   selection.FUN = NULL
   if (is.function(selection))
   	selection.FUN = selection
   else
   	selection.type = switch(match.arg(selection), fitness = 'fitness', uniform = 'uniform')
+  ############### END selection function definitions #########################################
   	
-  do.blendCrossover = function(rowIdxs, M, beta = 0.5)
-  {
-  	crossover.vec = function(rowVector, mat, beta)
-  	{
-    	blendCrossover(mat[rowVector[1], ], mat[rowVector[2], ], beta)			 
-  	}
-  	
-    m1 = apply(rowIdxs, 1,  crossover.vec, mat = M, beta = beta)
-    matrix(t(m1), byrow = F, ncol = ncol(M))
+  ############### BEG crossover function definitions #########################################
+  twoPointsCrossover = function(x1, x2)
+  {	
+	p12 = sample(1:length(x1), 2)
+	idxs = seq(p12[1], p12[2])
+	temp1 = x1[idxs]
+	x1[idxs] = x2[idxs]
+	x2[idxs] = temp1
+	matrix(c(x1, x2), nrow = 2, byrow = T)
   }
   
-  crossover.FUN = NULL
-  if (is.function(crossover))
-  	crossover.FUN = crossover
-  else
-  	crossover.FUN = do.blendCrossover
-  	
-  mutateNoise = function(x)
-  {			
-    rows = sample(1:nrow(x), mutations, rep = TRUE)
-    cols = sample(1:ncol(x), mutations, rep = TRUE)
-    noise = runif(mutations)
-    
-    ext = matrix(c(rows, cols), mutations, 2)
-    x[ext] = noise
-    x
-  }
-  
-  	mutation.FUN = NULL
-  	if (is.function(mutation))
-  		mutation.FUN = mutation
-  	else
-  		mutation.FUN = switch(match.arg(mutation), noise = mutateNoise)
-  
-  blendCrossover = function(cr1, cr2, beta)
+  blendCrossover = function(cr1, cr2, beta = 0.5)
   {								
     prob = runif(1)
     if (prob > cxRate)                  
@@ -74,7 +54,45 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     
     matrix(c(ch1, ch2), nrow = 2, byrow = T)			
   }
+
+  applyCrossover = function(rowIdxs, M, FUN)
+  {
+  	FUN.vec = function(rowVector, mat)
+  	{
+  		FUN(mat[rowVector[1], ], mat[rowVector[2], ])
+  	}
+  	
+    m1 = apply(rowIdxs, 1, FUN.vec, mat = M)
+    matrix(t(m1), byrow = F, ncol = ncol(M))
+  }
+    
+  crossover.FUN = NULL
+  if (is.function(crossover))
+  	crossover.FUN = crossover
+  else
+  	crossover.FUN = switch(match.arg(crossover), blend = blendCrossover, two.points = twoPointsCrossover) 
+  ############### END crossover function definitions #########################################
   
+  ############### BEG mutation function definitions #########################################
+  mutateNoise = function(x)
+  {			
+    rows = sample(1:nrow(x), mutations, rep = TRUE)
+    cols = sample(1:ncol(x), mutations, rep = TRUE)
+    noise = runif(mutations)
+    
+    ext = matrix(c(rows, cols), mutations, 2)
+    x[ext] = noise
+    x
+  }
+  
+  	mutation.FUN = NULL
+  	if (is.function(mutation))
+  		mutation.FUN = mutation
+  	else
+  		mutation.FUN = switch(match.arg(mutation), noise = mutateNoise)
+  ############### END mutation function definitions #########################################
+  
+    
   decode = function(x, lb, ub)
   {
     n = nrow(x)
@@ -125,18 +143,20 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     }
     
     # crossover selection
-    if (identical(selection.type, 'fitness'))
-      probVec = fitnessVec
-    else if (identical(selection.type, 'uniform'))
-      probVec = NULL
+    if (! is.null(selection.FUN))
+    	popIdxs = selection.FUN(decodedPop, fitnessVec)
     else
-      stop('Unknow selection type.\n')
+    { 
+    	if (identical(selection.type, 'fitness'))
+      		probVec = fitnessVec
+    	else if (identical(selection.type, 'uniform'))
+      		probVec = NULL
+      		    	      	
+      	popIdxs = sample(1:popSize, nLeft, replace = TRUE, prob = probVec)
+    }
     
-    popIdxs = sample(1:popSize, nLeft, replace = TRUE, prob = probVec)
-    popIdxsM = matrix(popIdxs, ncol = 2, byrow = T) 
-    beta = 0.5
-    
-    offspring = crossover.FUN(popIdxsM, population, beta)
+    popIdxsM = matrix(popIdxs, ncol = 2, byrow = T)     
+    offspring = applyCrossover(popIdxsM, population, crossover.FUN)
     newPopulation[(elite+1):popSize, ] = offspring
     
     population <<- mutation.FUN(newPopulation)
