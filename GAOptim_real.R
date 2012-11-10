@@ -1,5 +1,5 @@
-simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, eliteRate = 0.4,
-                     selection = c('fitness', 'uniform'))
+GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, eliteRate = 0.4,
+                     selection = c('fitness', 'uniform'), crossover = c('blend'), mutation = c('noise'))
 {		
   population = NULL		
   bestFitnessVec = numeric()
@@ -11,13 +11,32 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
   bestFit = NULL
   mutations = as.integer(mutRate * popSize * nvars)
   iter = 0
-  
-  selection.type = switch(match.arg(selection), fitness = 'fitness', uniform = 'uniform')
-  
-  # pre-alocando e reciclando newPopulation a cada iteracao
   newPopulation = matrix(0, nrow = popSize, ncol = nvars)
   
-  mutate = function(x)
+  selection.FUN = NULL
+  if (is.function(selection))
+  	selection.FUN = selection
+  else
+  	selection.type = switch(match.arg(selection), fitness = 'fitness', uniform = 'uniform')
+  	
+  do.blendCrossover = function(rowIdxs, M, beta = 0.5)
+  {
+  	crossover.vec = function(rowVector, mat, beta)
+  	{
+    	blendCrossover(mat[rowVector[1], ], mat[rowVector[2], ], beta)			 
+  	}
+  	
+    m1 = apply(rowIdxs, 1,  crossover.vec, mat = M, beta = beta)
+    matrix(t(m1), byrow = F, ncol = ncol(M))
+  }
+  
+  crossover.FUN = NULL
+  if (is.function(crossover))
+  	crossover.FUN = crossover
+  else
+  	crossover.FUN = do.blendCrossover
+  	
+  mutateNoise = function(x)
   {			
     rows = sample(1:nrow(x), mutations, rep = TRUE)
     cols = sample(1:ncol(x), mutations, rep = TRUE)
@@ -25,20 +44,14 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
     
     ext = matrix(c(rows, cols), mutations, 2)
     x[ext] = noise
-    
     x
   }
   
-  do.crossover = function(rowIdxs, M, beta = 0.5)
-  {
-    m1 = apply(rowIdxs, 1,  crossover.vec, mat = M, beta = beta)
-    matrix(t(m1), byrow = F, ncol = ncol(M))
-  }
-  
-  crossover.vec = function(rowVector, mat, beta)
-  {
-    blendCrossover(mat[rowVector[1], ], mat[rowVector[2], ], beta)			 
-  }
+  	mutation.FUN = NULL
+  	if (is.function(mutation))
+  		mutation.FUN = mutation
+  	else
+  		mutation.FUN = switch(match.arg(mutation), noise = mutateNoise)
   
   blendCrossover = function(cr1, cr2, beta)
   {								
@@ -123,10 +136,10 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
     popIdxsM = matrix(popIdxs, ncol = 2, byrow = T) 
     beta = 0.5
     
-    offspring = do.crossover(popIdxsM, population, beta)
+    offspring = crossover.FUN(popIdxsM, population, beta)
     newPopulation[(elite+1):popSize, ] = offspring
     
-    population <<- mutate(newPopulation)
+    population <<- mutation.FUN(newPopulation)
   }		
   
   objs = list (		
@@ -163,26 +176,4 @@ simpleGA = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, 
   )
   
   objs
-}
-
-run.test  = function()
-{
-  # global minimun at gold (0, -1) = 3
-  goldInvert = function(x)
-  {
-    a = 1+(x[1]+x[2]+1)^2*(19-14*x[1]+3*x[1]^2-14*x[2]+6*x[1]*x[2]+3*x[2]^2);
-    b = 30+(2*x[1]-3*x[2])^2*(18-32*x[1]+12*x[1]^2+48*x[2]-36*x[1]*x[2]+27*x[2]^2);
-    1/(a*b)
-  }
-  
-  ga = simpleGA(goldInvert, c(-2, -2), c(2,2), popSize = 400, mutRate = 0.05, eliteRate = 0.5, 
-                selection = 'fitness')
-  tempo = system.time(ga$evolve(h = 300))
-  print(tempo)
-  cat('Best chromosome:\n', ga$get.best.cx())
-  
-  plot(ga$get.bestfit.hist(), type = 'l', col = 'steelblue', lwd = 2, ylab = 'Fitness',
-       xlab = 'Generation', main = 'Goldstein-Price function')
-  lines(ga$get.meanfit.hist(), col = 'tomato', lwd = 2)
-  grid(col = 1)
 }
