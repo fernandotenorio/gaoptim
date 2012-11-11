@@ -25,7 +25,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   ############### BEG crossover function definitions #########################################
   twoPointsCrossover = function(x1, x2, prob)
   {	
-  	if (runif(1) > prob)                  
+  	if (runif(1) > prob)
     	return(matrix(c(x1, x2), nrow = 2, byrow = T))
 
 	p12 = sample(1:length(x1), 2)
