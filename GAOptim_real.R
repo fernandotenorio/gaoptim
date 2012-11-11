@@ -2,7 +2,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
                      selection = c('fitness', 'uniform'), crossover = c('blend', 'two.points'),
                      mutation = c('noise'))
 {		
-  population = NULL		
+  currentPopulation = NULL		
   bestFitnessVec = numeric()
   meanFitnessVec = numeric()
   elite = max(0, 2 * as.integer(eliteRate * popSize * 0.5))
@@ -23,8 +23,11 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   ############### END selection function definitions #########################################
   	
   ############### BEG crossover function definitions #########################################
-  twoPointsCrossover = function(x1, x2)
+  twoPointsCrossover = function(x1, x2, prob)
   {	
+  	if (runif(1) > prob)                  
+      return(matrix(c(x1, x2), nrow = 2, byrow = T))
+
 	p12 = sample(1:length(x1), 2)
 	idxs = seq(p12[1], p12[2])
 	temp1 = x1[idxs]
@@ -33,12 +36,12 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
 	matrix(c(x1, x2), nrow = 2, byrow = T)
   }
   
-  blendCrossover = function(cr1, cr2, beta = 0.5)
+  blendCrossover = function(cr1, cr2, prob)
   {								
-    prob = runif(1)
-    if (prob > cxRate)                  
+    if (runif(1) > prob)                  
       return(matrix(c(cr1, cr2), nrow = 2, byrow = T))
     
+    beta = 0.5
     n = length(cr1)
     i = sample(1:n, 1)
     
@@ -59,7 +62,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   {
   	FUN.vec = function(rowVector, mat)
   	{
-  		FUN(mat[rowVector[1], ], mat[rowVector[2], ])
+  		FUN(mat[rowVector[1], ], mat[rowVector[2], ], cxRate)
   	}
   	
     m1 = apply(rowIdxs, 1, FUN.vec, mat = M)
@@ -101,7 +104,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   
   initPopulation = function()
   {		
-    if (is.null (population))
+    if (is.null (currentPopulation))
     {
       eps = 10E-6
       if (length(lb) != length(ub))
@@ -112,7 +115,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
         stop('Small difference detected int Domain vectors.\n')
       
       n = popSize * nvars
-      population <<- matrix (runif (n), nrow = popSize)				
+      currentPopulation <<- matrix (runif (n), nrow = popSize)				
     }			
   }
   
@@ -121,7 +124,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   do.evolve = function()
   {
     iter <<- iter + 1      
-    decodedPop = decode(population, lb, ub)
+    decodedPop = decode(currentPopulation, lb, ub)
     fitnessVec = apply(decodedPop, 1, FUN)
     this.best = max(fitnessVec)			
     bestFitnessVec[iter] <<- this.best			
@@ -130,7 +133,8 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     if (is.null(bestFit) || (this.best > bestFit))
     {
       bestFit <<- this.best
-      bestCX <<- decodedPop[which(fitnessVec == this.best), ][1]
+      # [1]: pode haver mais de 1 instancia do melhor individuo
+      bestCX <<- decodedPop[which(fitnessVec == this.best)[1], ]
     }
     
     nLeft = popSize
@@ -139,12 +143,12 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     {
       # Maximization problem												
       nLeft = popSize - elite
-      newPopulation[1:elite, ] = population[order(fitnessVec, decreasing = TRUE)[1:elite], ] 
+      newPopulation[1:elite, ] = currentPopulation[order(fitnessVec, decreasing = TRUE)[1:elite], ] 
     }
     
     # crossover selection
     if (! is.null(selection.FUN))
-    	popIdxs = selection.FUN(decodedPop, fitnessVec)
+    	popIdxs = selection.FUN(decodedPop, fitnessVec, nLeft)[1:nLeft]
     else
     { 
     	if (identical(selection.type, 'fitness'))
@@ -156,16 +160,16 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     }
     
     popIdxsM = matrix(popIdxs, ncol = 2, byrow = T)     
-    offspring = applyCrossover(popIdxsM, population, crossover.FUN)
+    offspring = applyCrossover(popIdxsM, currentPopulation, crossover.FUN)
     newPopulation[(elite+1):popSize, ] = offspring
     
-    population <<- mutation.FUN(newPopulation)
+    currentPopulation <<- mutation.FUN(newPopulation)
   }		
   
   objs = list (		
-    currentPopulation = function()
+    population = function()
     {
-      decode(population, lb, ub)
+      decode(currentPopulation, lb, ub)
     },								
     
     bestFit = function()
@@ -205,6 +209,12 @@ plot.GAReal = function(ga, xlab = 'Generation', ylab = 'Fitness', main = 'GA opt
 		'topright', 'right', 'center'))
 {
 	ymean = ga$meanFit()
+	if (length(ymean) == 0)
+	{
+		print(summary(ga))
+		return(NULL)
+	}
+	
 	ybest = ga$bestFit()
 	ylim = c(min(ymean, ybest), max(ymean, ybest))
 	plot(ybest, col = bestcol, panel.first = grid(col = '#A9A9A9'), xlab = xlab,
@@ -217,10 +227,17 @@ plot.GAReal = function(ga, xlab = 'Generation', ylab = 'Fitness', main = 'GA opt
 summary.GAReal = function(ga)
 {
 	n = length(ga$bestFit())		
+	if (n == 0)
+	{
+		sm.obj = list(evolved = FALSE)
+		class(sm.obj) = 'summaryGAReal'
+		return(sm.obj)		
+	}
 	sm.obj = list(n = n, sm.mean = summary(ga$meanFit()),
 				sm.best = summary(ga$bestFit()),
 				best.cx = ga$bestIndividual(),
-				best.fit = max(ga$bestFit()))
+				best.fit = max(ga$bestFit()), 
+				evolved = TRUE)
 	class(sm.obj) = 'summaryGAReal'
 	sm.obj
 }
@@ -232,13 +249,21 @@ print.GAReal = function(obj)
 
 print.summaryGAReal = function(obj)
 {
-	cat('Results for', obj$n, 'Generations:')
-	cat('\nMean Fitness:\n')
-	print(obj$sm.mean)
-	cat('\nBest Fitness:\n')
-	print(obj$sm.best)
-	cat('\nBest individual:\n')
-	print(obj$best.cx)
-	cat('\nBest fitness value:\n')
-	print(obj$best.fit)
+	if (! obj$evolved)
+	{
+		cat('Population ready to evolve.')
+		cat('\nPlease, call myGA$evolve(h) to generate results.\n')
+	}
+	else
+	{
+		cat('Results for', obj$n, 'Generations:')
+		cat('\nMean Fitness:\n')
+		print(obj$sm.mean)
+		cat('\nBest Fitness:\n')
+		print(obj$sm.best)
+		cat('\nBest individual:\n')
+		print(obj$best.cx)
+		cat('\nBest fitness value:\n')
+		print(obj$best.fit)
+	}
 }
