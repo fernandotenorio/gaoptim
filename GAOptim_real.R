@@ -168,17 +168,17 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
       decode(population, lb, ub)
     },								
     
-    get.bestfit.hist = function()
+    bestfit = function()
     {
       bestFitnessVec
     },
     
-    get.meanfit.hist = function()
+    meanfit = function()
     {
       meanFitnessVec
     },
     
-    get.best.cx = function()
+    best = function()
     {
       bestCX
     },
@@ -195,5 +195,50 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     
   )
   
+  class(objs) = 'GAReal'
   objs
+}
+
+plot.GAReal = function(ga, xlab = 'Generation', ylab = 'Fitness', main = 'GA optimization',
+		bestcol = 'steelblue', meancol = 'tomato', lwd = 2, 
+		legend.pos = c('bottomright', 'bottom', 'bottomleft', 'left', 'topleft', 'top',
+		'topright', 'right', 'center'))
+{
+	ymean = ga$meanfit()
+	ybest = ga$bestfit()
+		
+	plot(ybest, col = bestcol, panel.first = grid(col = '#A9A9A9'), xlab = xlab,
+	ylab = ylab, main = main, lwd = lwd, type = 'l')
+	
+	lines(ymean, col = meancol, lwd = lwd)
+	legend(legend.pos, legend = c('best', 'mean'), col = c(bestcol, meancol), lwd = lwd)
+}
+
+summary.GAReal = function(ga)
+{
+	n = length(ga$bestfit())		
+	sm.obj = list(n = n, sm.mean = summary(ga$meanfit()),
+				sm.best = summary(ga$bestfit()),
+				best.cx = ga$best(),
+				best.fit = max(ga$bestfit()))
+	class(sm.obj) = 'summaryGAReal'
+	sm.obj
+}
+
+print.GAReal = function(obj)
+{
+	print(summary(obj))
+}
+
+print.summaryGAReal = function(obj)
+{
+	cat('Results for', obj$n, 'Generations:')
+	cat('\nMean Fitness:\n')
+	print(obj$sm.mean)
+	cat('\nBest Fitness:\n')
+	print(obj$sm.best)
+	cat('\nBest individual:\n')
+	print(obj$best.cx)
+	cat('\nBest fitness value:\n')
+	print(obj$best.fit)
 }
