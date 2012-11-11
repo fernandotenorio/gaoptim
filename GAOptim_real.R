@@ -130,7 +130,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     if (is.null(bestFit) || (this.best > bestFit))
     {
       bestFit <<- this.best
-      bestCX <<- decodedPop[which(fitnessVec == this.best), ]
+      bestCX <<- decodedPop[which(fitnessVec == this.best), ][1]
     }
     
     nLeft = popSize
@@ -163,7 +163,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   }		
   
   objs = list (		
-    get.population = function()
+    individuals = function()
     {
       decode(population, lb, ub)
     },								
@@ -206,9 +206,9 @@ plot.GAReal = function(ga, xlab = 'Generation', ylab = 'Fitness', main = 'GA opt
 {
 	ymean = ga$meanfit()
 	ybest = ga$bestfit()
-		
+	ylim = c(min(ymean, ybest), max(ymean, ybest))
 	plot(ybest, col = bestcol, panel.first = grid(col = '#A9A9A9'), xlab = xlab,
-	ylab = ylab, main = main, lwd = lwd, type = 'l')
+	ylab = ylab, main = main, lwd = lwd, type = 'l', ylim = ylim)
 	
 	lines(ymean, col = meancol, lwd = lwd)
 	legend(legend.pos, legend = c('best', 'mean'), col = c(bestcol, meancol), lwd = lwd)
