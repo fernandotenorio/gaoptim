@@ -163,22 +163,22 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   }		
   
   objs = list (		
-    individuals = function()
+    currentPopulation = function()
     {
       decode(population, lb, ub)
     },								
     
-    bestfit = function()
+    bestFit = function()
     {
       bestFitnessVec
     },
     
-    meanfit = function()
+    meanFit = function()
     {
       meanFitnessVec
     },
     
-    best = function()
+    bestIndividual = function()
     {
       bestCX
     },
@@ -204,8 +204,8 @@ plot.GAReal = function(ga, xlab = 'Generation', ylab = 'Fitness', main = 'GA opt
 		legend.pos = c('bottomright', 'bottom', 'bottomleft', 'left', 'topleft', 'top',
 		'topright', 'right', 'center'))
 {
-	ymean = ga$meanfit()
-	ybest = ga$bestfit()
+	ymean = ga$meanFit()
+	ybest = ga$bestFit()
 	ylim = c(min(ymean, ybest), max(ymean, ybest))
 	plot(ybest, col = bestcol, panel.first = grid(col = '#A9A9A9'), xlab = xlab,
 	ylab = ylab, main = main, lwd = lwd, type = 'l', ylim = ylim)
@@ -216,11 +216,11 @@ plot.GAReal = function(ga, xlab = 'Generation', ylab = 'Fitness', main = 'GA opt
 
 summary.GAReal = function(ga)
 {
-	n = length(ga$bestfit())		
-	sm.obj = list(n = n, sm.mean = summary(ga$meanfit()),
-				sm.best = summary(ga$bestfit()),
-				best.cx = ga$best(),
-				best.fit = max(ga$bestfit()))
+	n = length(ga$bestFit())		
+	sm.obj = list(n = n, sm.mean = summary(ga$meanFit()),
+				sm.best = summary(ga$bestFit()),
+				best.cx = ga$bestIndividual(),
+				best.fit = max(ga$bestFit()))
 	class(sm.obj) = 'summaryGAReal'
 	sm.obj
 }
