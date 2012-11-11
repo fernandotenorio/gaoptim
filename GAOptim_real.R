@@ -26,7 +26,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   twoPointsCrossover = function(x1, x2, prob)
   {	
   	if (runif(1) > prob)                  
-      return(matrix(c(x1, x2), nrow = 2, byrow = T))
+    	return(matrix(c(x1, x2), nrow = 2, byrow = T))
 
 	p12 = sample(1:length(x1), 2)
 	idxs = seq(p12[1], p12[2])
@@ -39,7 +39,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   blendCrossover = function(cr1, cr2, prob)
   {								
     if (runif(1) > prob)                  
-      return(matrix(c(cr1, cr2), nrow = 2, byrow = T))
+    	return(matrix(c(cr1, cr2), nrow = 2, byrow = T))
     
     beta = 0.5
     n = length(cr1)
