@@ -125,15 +125,15 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     iter <<- iter + 1      
     decodedPop = decode(currentPopulation, lb, ub)
     fitnessVec = apply(decodedPop, 1, FUN)
-    this.best = max(fitnessVec)			
-    bestFitnessVec[iter] <<- this.best			
+    max.idx = which.max(fitnessVec)
+    this.best = fitnessVec[max.idx]
+    bestFitnessVec[iter] <<- this.best
     meanFitnessVec[iter] <<- mean(fitnessVec)
     
     if (is.null(bestFit) || (this.best > bestFit))
     {
       bestFit <<- this.best
-      # [1]: pode haver mais de 1 instancia do melhor individuo
-      bestCX <<- decodedPop[which(fitnessVec == this.best)[1], ]
+      bestCX <<- decodedPop[max.idx, ]
     }
     
     nLeft = popSize

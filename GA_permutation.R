@@ -1,7 +1,7 @@
 simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, eliteRate = 0.4, 
 			   selection = c('fitness', 'uniform'), crossover = c('pmx'), mutation = c('swap'))
 {
-  population = NULL		
+  currentPopulation = NULL		
   bestFitnessVec = numeric()
   meanFitnessVec = numeric()
   elite = max(0, 2 * as.integer(eliteRate * popSize * 0.5))
@@ -22,7 +22,7 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
   
   
   ############### BEG crossover function definitions #########################################
-  pmxCrossover = function(vec1, vec2)
+  pmxCrossover = function(vec1, vec2, prob)
   {
     prob = runif(1)
     if (prob > cxRate)       
@@ -89,22 +89,11 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
   else
     mutation.FUN = switch(match.arg(mutation), swap = mutateSwap)
   ############### END mutation function definitions #########################################
-  
-  do.crossover = function(rowIdxs, M)
-  {
-    m1 = apply(rowIdxs, 1, crossover.vec, mat = M)
-    matrix(t(m1), byrow = F, ncol = ncol(M))
-  }
-  
-  crossover.vec = function(rowVector, mat)
-  {
-    pmx(mat[rowVector[1], ], mat[rowVector[2], ])			 
-  }
-  
+   
   initPopulation = function()
   {
-    if (is.null(population))
-      population <<- matrix(replicate(popSize,sample(1:n)), byrow = TRUE, ncol = n)
+    if (is.null(currentPopulation))
+      currentPopulation <<- matrix(replicate(popSize,sample(1:n)), byrow = TRUE, ncol = n)
   }
   
   initPopulation()
@@ -112,15 +101,16 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
   do.evolve = function()
   {
     iter <<- iter + 1      
-    fitnessVec = apply(population, 1, FUN)
-    this.best = max(fitnessVec)			
+    fitnessVec = apply(currentPopulation, 1, FUN)
+    max.idx = which.max(fitnessVec)
+    this.best = fitnessVec[max.idx]		
     bestFitnessVec[iter] <<- this.best			
     meanFitnessVec[iter] <<- mean(fitnessVec)
     
     if (is.null(bestFit) || (this.best > bestFit))
     {
       bestFit <<- this.best
-      bestCX <<- population[which(fitnessVec == this.best), ]
+      bestCX <<- currentPopulation[max.idx, ]
     }
     
     nLeft = popSize
@@ -129,37 +119,46 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
     {
       # Maximization problem												
       nLeft = popSize - elite
-      newPopulation[1:elite, ] = population[order(fitnessVec, decreasing = TRUE)[1:elite], ] 
+      newPopulation[1:elite, ] = currentPopulation[order(fitnessVec, decreasing = TRUE)[1:elite], ] 
     }
     
-    # Crossover selection
-    probVec = fitnessVec
-    popIdxs = sample(1:popSize, nLeft, replace = TRUE, prob = probVec)
-    popIdxsM = matrix(popIdxs, ncol = 2, byrow = T) 
+    # crossover selection
+    if (! is.null(selection.FUN))
+      popIdxs = selection.FUN(currentPopulation, fitnessVec, nLeft)[1:nLeft]
+    else
+    { 
+      if (identical(selection.type, 'fitness'))
+        probVec = fitnessVec
+      else if (identical(selection.type, 'uniform'))
+        probVec = NULL
+      
+      popIdxs = sample(1:popSize, nLeft, replace = TRUE, prob = probVec)
+    }
     
-    offspring = do.crossover(popIdxsM, population)
+    popIdxsM = matrix(popIdxs, ncol = 2, byrow = T)
+    offspring = applyCrossover(popIdxsM, currentPopulation, crossover.FUN)
     newPopulation[(elite+1):popSize, ] = offspring
     
-    population <<- mutate(newPopulation)
+    currentPopulation <<- mutation.FUN(newPopulation)
   }
   
   objs = list(
-    get.population = function()
+    population = function()
     {
-      population
+      currentPopulation
     },								
     
-    get.bestfit.hist = function()
+    bestFit = function()
     {
       bestFitnessVec
     },
     
-    get.meanfit.hist = function()
+    meanFit = function()
     {
       meanFitnessVec
     },
     
-    get.best.cx = function()
+    bestIndividual = function()
     {
       bestCX
     },
@@ -239,22 +238,32 @@ get.distance = function(pontos, perm)
 
 ####################################################################
 
-run.test = function(cities = 10, R = 100, pop = 200, h = 100)
+run.test = function(cities = 10, R = 100, pop = 100, h = 100, mr = 0.1, er = 0.5)
 {
-  pontos = get.circle.cities(cities, R)
-  #plot.circle(pontos)
-  dist = get.distance(pontos, 1:cities)
-  cat('Optimal distance: ', dist, '\n')
+#   pontos = get.circle.cities(cities, R)
+#   #plot.circle(pontos)
+#   dist = get.distance(pontos, 1:cities)
+#   cat('Optimal distance: ', dist, '\n')
   
   heur = function(perm)
   {
     1/get.distance(pontos, perm)
   }
   
-  gap = simpleGAP(heur, cities, popSize = pop, mutRate = 0.1, eliteRate = 0.3)
+  eurodistmat <- as.matrix(eurodist)
+  distance <- function(sq) 
+  {  
+      sq2 <- embed(sq, 2)
+      1/sum(eurodistmat[cbind(sq2[,2],sq2[,1])])
+  }
+  
+  gap = simpleGAP(distance, cities, selection = 'fitness', mutRate = mr, eliteRate = er)
   gap$evolve(h)
-  cat('GAP best distance: ', 1/max(gap$get.bestfit.hist()), '\n')
-  plot(gap$get.bestfit.hist(), type = 'l', col = 'gold', main = paste('TSP -', cities, 'cities'), lwd = 2)
-  lines(gap$get.meanfit.hist(), type = 'l', col = 'steelblue', lwd = 2)
+  cat('GAP best distance: ', 1/max(gap$bestFit()), '\n')
+  best = gap$bestIndividual()
+  print(best)
+  print(distance(best))
+  plot(gap$bestFit(), type = 'l', col = 'gold', main = paste('TSP -', cities, 'cities'), lwd = 2)
+  lines(gap$meanFit(), type = 'l', col = 'steelblue', lwd = 2)
   grid(col = 'darkgrey')
 }
