@@ -179,7 +179,6 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
 }
 
 # TSP cidades em volta de circunferencia
-####################################################################
 get.circle.cities = function(n, R = 100)
 {
   delta = 360/n
@@ -233,17 +232,15 @@ get.distance = function(pontos, perm)
   yi = pontos[[idxi]]$y
   
   dist + sqrt((xf - xi)^2 + (yf - yi)^2)
-  
 }
 
-####################################################################
-
-run.test = function(cities = 10, R = 100, pop = 100, h = 100, mr = 0.1, er = 0.5)
+run.test = function(cities = 10, R = 100, pop = 100, h = 100, mr = 0.1, er = 0.5, cr = 0.5,
+                    selection = 'fitness')
 {
-#   pontos = get.circle.cities(cities, R)
-#   #plot.circle(pontos)
-#   dist = get.distance(pontos, 1:cities)
-#   cat('Optimal distance: ', dist, '\n')
+  pontos = get.circle.cities(cities, R)
+  #plot.circle(pontos)
+  dist = get.distance(pontos, 1:cities)
+  cat('Optimal distance: ', dist, '\n')
   
   heur = function(perm)
   {
@@ -253,16 +250,16 @@ run.test = function(cities = 10, R = 100, pop = 100, h = 100, mr = 0.1, er = 0.5
   eurodistmat <- as.matrix(eurodist)
   distance <- function(sq) 
   {  
+      sq = c(sq, sq[1])
       sq2 <- embed(sq, 2)
       1/sum(eurodistmat[cbind(sq2[,2],sq2[,1])])
   }
   
-  gap = simpleGAP(distance, cities, selection = 'fitness', mutRate = mr, eliteRate = er)
+  gap = simpleGAP(heur, cities, selection = selection, cxRate = cr,
+                  mutRate = mr, eliteRate = er)
   gap$evolve(h)
   cat('GAP best distance: ', 1/max(gap$bestFit()), '\n')
   best = gap$bestIndividual()
-  print(best)
-  print(distance(best))
   plot(gap$bestFit(), type = 'l', col = 'gold', main = paste('TSP -', cities, 'cities'), lwd = 2)
   lines(gap$meanFit(), type = 'l', col = 'steelblue', lwd = 2)
   grid(col = 'darkgrey')
