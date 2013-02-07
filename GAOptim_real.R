@@ -68,7 +68,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
     m1 = apply(rowIdxs, 1, FUN.vec, mat = M)
     matrix(t(m1), byrow = F, ncol = ncol(M))
   }
-    
+  
   crossover.FUN = NULL
   if (is.function(crossover))
   	crossover.FUN = crossover
@@ -76,7 +76,7 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   	crossover.FUN = switch(match.arg(crossover), blend = blendCrossover, two.points = twoPointsCrossover) 
   ############### END crossover function definitions #########################################
   
-  ############### BEG mutation function definitions #########################################
+  ############### BEG mutation function definitions ##########################################
   mutateNoise = function(x)
   {			
     rows = sample(1:nrow(x), mutations, rep = TRUE)
@@ -95,7 +95,6 @@ GAReal = function (FUN, lb, ub,  popSize = 100, mutRate = 0.01, cxRate = 0.9, el
   		mutation.FUN = switch(match.arg(mutation), noise = mutateNoise)
   ############### END mutation function definitions #########################################
   
-    
   decode = function(x, lb, ub)
   {
     n = nrow(x)
