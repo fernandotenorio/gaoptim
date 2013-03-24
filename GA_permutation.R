@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #' Genetic Algorithm setup
 #' 
 #' Setup a \code{GAPerm} object that can be used to perform a permutation-based optimization.
@@ -509,4 +508,3 @@ run.test = function(cities = 10, R = 100, pop = 100, h = 100, mr = 0.1, er = 0.5
   lines(gap$meanFit(), type = 'l', col = 'steelblue', lwd = 2)
   grid(col = 'darkgrey')
 }
->>>>>>> f4227ac025bc66125a87e6ea5dbc9d6909bffec1
