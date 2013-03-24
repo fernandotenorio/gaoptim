@@ -13,7 +13,24 @@
 #' be usefull if you want to override one or more genetic operators.
 #' 
 #' \itemize{
-#' \item \code{selection}: Foo bar
+#' \item \code{selection}: The \code{fitness} option performs a \emph{fitness-proportionate}
+#' selection, so that the fittest individuals will have greater chances of being selected.
+#' If you choose this option, the value returned by \code{FUN} (the fitness value)
+#' should be \strong{non-negative}.
+#' The \code{uniform} option will randomly sample the individuals to mate, regardless of
+#' their fitness value. See the examples if you want to implement a custom selection function.
+#' }
+#' 
+#' \itemize{
+#' \item \code{crossover}: The \code{pmx} option will perform a 'partially mapped crossover'
+#' of the individuals DNA. See the references and examples if you need to implement a custom
+#' crossover function. The trick with permutation crossover is to make sure that the resulting
+#' children are valid permutations.
+#' }
+#' 
+#' \itemize{
+#' \item \code{mutation}: The \code{swap} option will perform a simple swap between specific
+#' gene positions, according to the mutation rate specified.
 #' }
 #' 
 #' @param FUN The fitness function, which should take a vector as argument and return a numeric
@@ -34,14 +51,14 @@
 #' function (see details and examples).
 #' @param mutation The mutation operator to be used. You can also implement a custom mutation
 #' function (see details and examples).
-#' @return An object of class \code{GAperm}, which you can pass as an argument to \code{plot} or
+#' @return An object of class \code{GAPerm}, which you can pass as an argument to \code{plot} or
 #' \code{summary}. This object is a list with the following accessor functions:
 #' \tabular{ll}{
 #' \code{bestFit}: \tab Returns a vector with the best fitness achieved in each generation.\cr
 #' \code{meanFit}: \tab Returns a vector with the mean fitness achieved in each generation.\cr
 #' \code{bestIndividual}: \tab Returns a vector with the best solution found.\cr
-#' \code{evolve(h)}: \tab This is the function you call to evolve your population. You need
-#' to specify the number of generations to evolve.\cr
+#' \code{evolve(h)}: \tab This is the function you call to evolve your population. 
+#' \cr \tab You also need to specify the number of generations to evolve.\cr
 #' \code{population}: \tab Returns the current population matrix.
 #' }
 #' @export
@@ -66,7 +83,6 @@
 #'
 #'  ga1 = GAPerm(dist.FUN, n, popSize = 100, mutRate = 0.3)
 #'  ga1$evolve(100)
-#'  print(ga1)
 #'  plot(xp, yp, type = 'n', xlab = '', ylab = '')
 #'  res = ga1$bestIndividual()
 #'  res = c(res, res[1])
@@ -80,10 +96,144 @@
 #'  arrows(xi, yi, xf, yf, col = 'red', angle = 10)
 #'  text(base.M[res, 1], base.M[res, 2], 1:n, cex = 0.9, col = 'gray20')
 #' 
-
+#' 
+#'  # Euro tour problem (See ?optim) 
+#'  eurodistmat = as.matrix(eurodist)
+#'  
+#'  # This function will be used for the remaining examples
+#'  distance = function(sq) 
+#'  {  
+#'    sq = c(sq, sq[1])
+#'    sq2 <- embed(sq, 2)
+#'    1/sum(eurodistmat[cbind(sq2[,2], sq2[,1])])
+#'  }
+#'
+#'  loc = -cmdscale(eurodist, add = TRUE)$points
+#'  x = loc[, 1]
+#'  y = loc[, 2]
+#'  n = nrow(eurodistmat)
+#'
+#'  set.seed(1)
+#'  ga2 = GAPerm(distance, n, popSize = 100, mutRate = 0.3)    
+#'  ga2$evolve(200)
+#'  best = ga2$bestIndividual()
+#'  best = c(best, best[1])
+#'  best.dist = 1/max(ga2$bestFit())
+#'  res = loc[best, ]
+#'  i = 1:n
+#'
+#'  plot(x, y, type = 'n', axes = FALSE, ylab = '', xlab = '')
+#'  title ('Euro tour: TSP with 21 cities')
+#'  mtext(paste('Best distance found:', best.dist))
+#'  arrows(res[i, 1], res[i, 2], res[i + 1, 1], res[i + 1, 2], col = 'red', angle = 10)
+#'  text(x, y, labels(eurodist), cex = 0.8, col = 'gray20') 
+#'  
+#'  
+#'  # Euro tour with custom selection
+#'  selec.FUN = function(population, fitnessVec, nLeft)
+#'  {
+#'    # Chance of being select proportional to fitness sqrt
+#'    idxs = sample(nrow(population), nLeft, prob = sqrt(fitnessVec))
+#'    
+#'    # Just return the nLeft selected row indexes
+#'    idxs
+#'  }
+#'  
+#'  ga3 = GAPerm(distance, n, mutRate = 0.3, selection = selec.FUN)
+#'  ga3$evolve(200)
+#'  best.dist = 1/max(ga3$bestFit())
+#'  plot(ga3, main = 'Euro tour: TSP with 21 cities')
+#'  mtext(paste('Best distance found:', best.dist))
+#'  
+#'  
+#'  # Euro tour with custom crossover
+#'  # This is the default pmx implementation
+#'  crossover.FUN = function(vec1, vec2, prob)
+#'  {
+#'    # prob is the crossover rate
+#'    if (runif(1) > prob)       
+#'      return(matrix(c(vec1, vec2), nrow = 2, byrow = TRUE))
+#'      
+#'    idxs = sample(1:length(vec1), 2)
+#'    vec1.cp = vec1
+#'
+#'    for (i in idxs)
+#'    {
+#'      other.val = vec2[i]
+#'      vec.idx = which(vec1 == other.val)
+#'      vec1[vec.idx] = vec1[i]
+#'      vec1[i] = other.val
+#'    }
+#'
+#'    for (i in idxs)
+#'    {
+#'      other.val = vec1.cp[i]
+#'      vec.idx = which(vec2 == other.val)
+#'      vec2[vec.idx] = vec2[i]
+#'      vec2[i] = other.val
+#'    }
+#'
+#'    matrix(c(vec1, vec2), nrow = 2, byrow = TRUE)
+#'  }
+#'  
+#'  ga4 = GAPerm(distance, n, mutRate = 0.3, crossover = crossover.FUN)
+#'  ga4$evolve(200)
+#'  best.dist = 1/max(ga4$bestFit())
+#'  plot(ga4, main = 'Euro tour: TSP with 21 cities')
+#'  mtext(paste('Best distance found:', best.dist))
+#'  
+#'  
+#'  # Euro tour with custom mutation
+#'  # This is the default implementation
+#'  mutation.FUN = function(M, mutations)
+#'  {
+#'    # M - The population matrix to apply mutation
+#'    # mutations - The number of mutations you supposed to apply, according to mutRate
+#'    
+#'    rows = sample(1:nrow(M), mutations, replace = FALSE)
+#'    cols = t(replicate(mutations, sample(1:n, 2)))
+#'    col1 = cols[, 1]
+#'    col2 = cols[, 2]
+#'    extM1 = matrix(c(rows, col1), ncol = 2)  
+#'    extM2 = matrix(c(rows, col2), ncol = 2)
+#'    tempCol = M[extM1]
+#'    M[extM1] = M[extM2]
+#'    M[extM2] = tempCol
+#'    M
+#'  }	
+#'  
+#'  ga5 = GAPerm(distance, n, mutRate = 0.3, mutation = mutation.FUN)
+#'  ga5$evolve(200)
+#'  best.dist = 1/max(ga5$bestFit())
+#'  plot(ga5, main = 'Euro tour: TSP with 21 cities')
+#'  mtext(paste('Best distance found:', best.dist))
+#'
+#' @references Even, S. Algorithmic Combinatorics. The Macmillan Company, NY 1973.  
+#' @references Michalewicz, Zbigniew. Genetic Algorithms + Data Structures = Evolution
+#' Programs - 3rd ed.
+#' 
 GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate = 0.4, 
 			   selection = c('fitness', 'uniform'), crossover = c('pmx'), mutation = c('swap'))
 {
+  
+  # Basic arg exception check #
+  if (! is.numeric(n) || n < 3)
+    stop("Please set 'n' to an integer value greater than 2.")
+  
+  if (! is.numeric(popSize) || popSize < 4)
+    stop("Please set 'popSize' to an integer value greater than 3.")
+
+  if (! is.numeric(mutRate) || mutRate < 0 || mutRate > 1)
+    stop("Please set 'mutRate' to a value in the range [0, 1].")
+  
+  if (! is.numeric(cxRate) || cxRate < 0 || cxRate > 1)
+    stop("Please set 'cxRate' to a value in the range [0, 1].")
+  
+  if (! is.numeric(eliteRate) || eliteRate < 0 || eliteRate >= 1)
+    stop("Please set 'eliteRate' to a value in the range [0, 1[.")
+  # Basic arg exception check #
+  
+  n = as.integer(n)
   currentPopulation = NULL		
   bestFitnessVec = numeric()
   meanFitnessVec = numeric()
@@ -107,9 +257,8 @@ GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate 
   ############### BEG crossover function definitions #########################################
   pmxCrossover = function(vec1, vec2, prob)
   {
-    prob = runif(1)
-    if (prob > cxRate)       
-      return(matrix(c(vec1, vec2), nrow = 2, byrow = T))
+    if (runif(1) > prob)       
+      return(matrix(c(vec1, vec2), nrow = 2, byrow = TRUE))
     
     idxs = sample(1:length(vec1), 2)
     vec1.cp = vec1
@@ -130,7 +279,7 @@ GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate 
       vec2[i] = other.val
     }
     
-    matrix(c(vec1, vec2), nrow = 2, byrow = T)
+    matrix(c(vec1, vec2), nrow = 2, byrow = TRUE)
   }
   
   applyCrossover = function(rowIdxs, M, FUN)
@@ -141,7 +290,7 @@ GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate 
     }
     
     m1 = apply(rowIdxs, 1, FUN.vec, mat = M)
-    matrix(t(m1), byrow = F, ncol = ncol(M))
+    matrix(t(m1), byrow = FALSE, ncol = ncol(M))
   }
   
   crossover.FUN = NULL
@@ -152,9 +301,9 @@ GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate 
   ############### END crossover function definitions #########################################
   
   ############### BEG mutation function definitions ##########################################
-  mutateSwap = function(M)
+  mutateSwap = function(M, mutations)
   {
-    rows = sample(1:nrow(M), mutations, rep = FALSE)
+    rows = sample(1:nrow(M), mutations, replace = FALSE)
     cols = t(replicate(mutations, sample(1:n, 2)))
     col1 = cols[, 1]
     col2 = cols[, 2]
@@ -205,7 +354,7 @@ GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate 
       newPopulation[1:elite, ] = currentPopulation[order(fitnessVec, decreasing = TRUE)[1:elite], ] 
     }
     
-    # crossover selection
+    # selection
     if (! is.null(selection.FUN))
       popIdxs = selection.FUN(currentPopulation, fitnessVec, nLeft)[1:nLeft]
     else
@@ -218,11 +367,11 @@ GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate 
       popIdxs = sample(1:popSize, nLeft, replace = TRUE, prob = probVec)
     }
     
-    popIdxsM = matrix(popIdxs, ncol = 2, byrow = T)
+    popIdxsM = matrix(popIdxs, ncol = 2, byrow = TRUE)
     offspring = applyCrossover(popIdxsM, currentPopulation, crossover.FUN)
     newPopulation[(elite+1):popSize, ] = offspring
     
-    currentPopulation <<- mutation.FUN(newPopulation)
+    currentPopulation <<- mutation.FUN(newPopulation, mutations)
   }
   
   objs = list(
@@ -275,26 +424,16 @@ GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate 
 #' @param lwd The line width.
 #' @param legend.pos The legend position, as a character vector.
 #' @param ... Other parameters (will be ignored).
-#' @aliases plot
+#' @aliases plot.GAPerm
 #' @export
-#' @examples
-#' 
-#' ga = GAPerm(function(x) sum(x), n = 10)
-#' ga$evolve(200)
-#' plot(ga)
-#' 
-# plot = function(x, ...)
-# {
-#   UseMethod('plot')
-# }
 
 #' @method plot GAPerm
 #' @S3method plot GAPerm
 #' @rdname plot_perm
 plot.GAPerm = function(x, xlab = 'Generation', ylab = 'Fitness', main = 'GA optimization',
                        bestcol = 'steelblue', meancol = 'tomato', lwd = 2, 
-                       legend.pos = c('bottomright', 'bottom', 'bottomleft', 'left', 'topleft', 'top',
-                                      'topright', 'right', 'center'), ...)
+                       legend.pos = c('bottomright', 'bottom', 'bottomleft',
+                       'left', 'topleft', 'top', 'topright', 'right', 'center'), ...)
 {
   ymean = x$meanFit()
   if (length(ymean) == 0)
@@ -321,7 +460,7 @@ plot.GAPerm = function(x, xlab = 'Generation', ylab = 'Fitness', main = 'GA opti
 #' @param object An object of class \code{GAPerm}.
 #' @param ... Other parameters (will be ignored).
 #' @export
-#' @aliases summary summary.GAPerm
+#' @aliases summary.GAPerm
 
 #' @method summary GAPerm
 #' @S3method summary GAPerm
@@ -350,7 +489,7 @@ summary.GAPerm = function(object, ...)
 #' @param x An object of class \code{GAPerm} or \code{summaryGAPerm}
 #' @param ... Other parameters (will be ignored).
 #' @export
-#' @aliases print print.GAPerm
+#' @aliases print.GAPerm
 
 #' @method print GAPerm
 #' @S3method print GAPerm
@@ -382,35 +521,4 @@ print.summaryGAPerm = function(x, ...)
     cat('\nBest fitness value:\n')
     print(x$best.fit)
   }
-}
-
-run.test = function(popSize = 100, h = 200, mutRate = 0.3)
-{
-  eurodistmat <- as.matrix(eurodist)
-  distance <- function(sq) 
-  {  
-      sq = c(sq, sq[1])
-      sq2 <- embed(sq, 2)
-      1/sum(eurodistmat[cbind(sq2[,2], sq2[,1])])
-  }
-  
-  loc = -cmdscale(eurodist, add = TRUE)$points
-  x = loc[, 1]
-  y = loc[, 2]
-  n = nrow(eurodistmat)
-  
-  set.seed(1)
-  ga = GAPerm(distance, n, popSize = popSize, mutRate = mutRate)    
-  ga$evolve(h)
-  best = ga$bestIndividual()
-  best = c(best, best[1])
-  best.dist = 1/max(ga$bestFit())
-  res = loc[best, ]
-  i = 1:n
-  
-  plot.title = paste('Euro tour: TSP with 21 cities', '\nBest distance:', best.dist)
-  plot(x, y, type = 'n', axes = FALSE, ylab = '', xlab = '', main = plot.title)
-  arrows(res[i, 1], res[i, 2], res[i + 1, 1], res[i + 1, 2], col = 'red', angle = 10)
-  text(x, y, labels(eurodist), cex = 0.8, col = 'gray20') 
-  ga
 }

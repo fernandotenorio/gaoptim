@@ -62,8 +62,8 @@
 #' \code{bestFit}: \tab Returns a vector with the best fitness achieved in each generation.\cr
 #' \code{meanFit}: \tab Returns a vector with the mean fitness achieved in each generation.\cr
 #' \code{bestIndividual}: \tab Returns a vector with the best solution found.\cr
-#' \code{evolve(h)}: \tab This is the function you call to evolve your population. You need
-#' to specify the number of generations to evolve.\cr
+#' \code{evolve(h)}: \tab This is the function you call to evolve your population.
+#' \cr \tab You also need to specify the number of generations to evolve.\cr
 #' \code{population}: \tab Returns the current population matrix.
 #' }
 #' @export
@@ -95,7 +95,7 @@
 #'  # pick the other half randomly
 #'  rowIdxs = c(rowIdxs, sample(idxs, remain, replace = TRUE))
 #'  
-#'  # Just return the row indexes
+#'  # Just return the nLeft selected row indexes
 #'  return(rowIdxs)
 #' }
 #' 
@@ -160,6 +160,21 @@ GAReal = function (FUN, lb, ub, popSize = 100, mutRate = 0.01, cxRate = 0.9, eli
                      selection = c('fitness', 'uniform'), crossover = c('blend', 'two.points'),
                      mutation = c('noise'))
 {		
+  
+  # Basic arg exception check #
+  if (! is.numeric(popSize) || popSize < 4)
+    stop("Please set 'popSize' to an integer value greater than 3.")
+  
+  if (! is.numeric(mutRate) || mutRate < 0 || mutRate > 1)
+    stop("Please set 'mutRate' to a value in the range [0, 1].")
+  
+  if (! is.numeric(cxRate) || cxRate < 0 || cxRate > 1)
+    stop("Please set 'cxRate' to a value in the range [0, 1].")
+  
+  if (! is.numeric(eliteRate) || eliteRate < 0 || eliteRate >= 1)
+    stop("Please set 'eliteRate' to a value in the range [0, 1[.")
+  # Basic arg exception check #
+  
   currentPopulation = NULL		
   bestFitnessVec = numeric()
   meanFitnessVec = numeric()
@@ -265,11 +280,11 @@ GAReal = function (FUN, lb, ub, popSize = 100, mutRate = 0.01, cxRate = 0.9, eli
     {
       eps = 10E-6
       if (length(lb) != length(ub))
-        stop('Domain vectors must have the same length.\n')
+        stop('Domain vectors must have the same length.')
       if (any (is.na (lb)) || any( is.na (ub)))
-        stop('Missing values not allowed in Domain vectors.\n')
+        stop('Missing values not allowed in Domain vectors.')
       if ( any(ub - lb < eps) )
-        stop('Small difference detected int Domain vectors.\n')
+        stop('Values are too close in Domain vectors. Please specify a wider search space')
       
       n = popSize * nvars
       currentPopulation <<- matrix (runif (n), nrow = popSize)				
@@ -373,7 +388,7 @@ GAReal = function (FUN, lb, ub, popSize = 100, mutRate = 0.01, cxRate = 0.9, eli
 #' @param lwd The line width.
 #' @param legend.pos The legend position, as a character vector.
 #' @param ... Other parameters (will be ignored).
-#' @aliases plot
+#' @aliases plot.GAReal
 #' @export
 #' @examples
 #' 
@@ -381,18 +396,14 @@ GAReal = function (FUN, lb, ub, popSize = 100, mutRate = 0.01, cxRate = 0.9, eli
 #' ga$evolve(200)
 #' plot(ga)
 #' 
-# plot = function(x, ...)
-# {
-#   UseMethod('plot')
-# }
 
 #' @method plot GAReal
 #' @S3method plot GAReal
 #' @rdname plot_real
 plot.GAReal = function(x, xlab = 'Generation', ylab = 'Fitness', main = 'GA optimization',
-		bestcol = 'steelblue', meancol = 'tomato', lwd = 2, 
-		legend.pos = c('bottomright', 'bottom', 'bottomleft', 'left', 'topleft', 'top',
-		'topright', 'right', 'center'), ...)
+		                  bestcol = 'steelblue', meancol = 'tomato', lwd = 2, 
+		                  legend.pos = c('bottomright', 'bottom', 'bottomleft',
+                      'left', 'topleft', 'top', 'topright', 'right', 'center'), ...)
 {
 	ymean = x$meanFit()
 	if (length(ymean) == 0)
@@ -419,7 +430,7 @@ plot.GAReal = function(x, xlab = 'Generation', ylab = 'Fitness', main = 'GA opti
 #' @param object An object of class \code{GAReal}.
 #' @param ... Other parameters (will be ignored).
 #' @export
-#' @aliases summary summary.GAReal
+#' @aliases summary.GAReal
 
 #' @method summary GAReal
 #' @S3method summary GAReal
@@ -448,7 +459,7 @@ summary.GAReal = function(object, ...)
 #' @param x An object of class \code{GAReal} or \code{summaryGAReal}
 #' @param ... Other parameters (will be ignored).
 #' @export
-#' @aliases print print.GAReal
+#' @aliases print.GAReal
 
 #' @method print GAReal
 #' @S3method print GAReal
