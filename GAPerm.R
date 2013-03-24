@@ -82,9 +82,6 @@
 #' 
 
 GAPerm = function(FUN, n, popSize = 100, mutRate = 0.1, cxRate = 0.9, eliteRate = 0.4, 
-=======
-simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, eliteRate = 0.4, 
->>>>>>> f4227ac025bc66125a87e6ea5dbc9d6909bffec1
 			   selection = c('fitness', 'uniform'), crossover = c('pmx'), mutation = c('swap'))
 {
   currentPopulation = NULL		
@@ -261,7 +258,6 @@ simpleGAP = function(FUN, n, popSize = 100, mutRate = 0.01, cxRate = 0.95, elite
     
   )
   
-<<<<<<< HEAD
   class(objs) = 'GAPerm'
   objs
 }
@@ -326,48 +322,12 @@ plot.GAPerm = function(x, xlab = 'Generation', ylab = 'Fitness', main = 'GA opti
 #' @param ... Other parameters (will be ignored).
 #' @export
 #' @aliases summary summary.GAPerm
-=======
-  objs
-}
-
-# TSP cidades em volta de circunferencia
-get.circle.cities = function(n, R = 100)
-{
-  delta = 360/n
-  angs = seq(0, 360 - delta, length = n)
-  angs	
-  
-  pontos = vector(mode = "list", length = n)
-  
-  for (i in 1:n)
-  {
-    rad = angs[i] * pi/180.0
-    pontos[[i]] = list(x = R * sin(rad), y = R * cos(rad))
-  }
-  pontos
-}
-
-plot.circle = function(pontos)
-{
-  xp = numeric()
-  yp = numeric()
-  for (i in 1:length(pontos))
-  {
-    plot(-R:R, -R:R, type = 'n')
-    xp = c(xp, pontos[[i]]$x)
-    yp = c(yp, pontos[[i]]$y)
-    
-  }
-  points(xp, yp, col = 'red', cex = 2)
-}
->>>>>>> f4227ac025bc66125a87e6ea5dbc9d6909bffec1
 
 #' @method summary GAPerm
 #' @S3method summary GAPerm
 #' @rdname summary_perm
 summary.GAPerm = function(object, ...)
 {
-<<<<<<< HEAD
   n = length(object$bestFit())		
   if (n == 0)
   {
@@ -453,58 +413,4 @@ run.test = function(popSize = 100, h = 200, mutRate = 0.3)
   arrows(res[i, 1], res[i, 2], res[i + 1, 1], res[i + 1, 2], col = 'red', angle = 10)
   text(x, y, labels(eurodist), cex = 0.8, col = 'gray20') 
   ga
-}
-=======
-  dist = 0.0
-  for (i in 1:(length(perm) - 1))
-  {
-    idx1 = perm[i]
-    idx2 = perm[i + 1]
-    x1 = pontos[[idx1]]$x
-    y1 = pontos[[idx1]]$y
-    x2 = pontos[[idx2]]$x
-    y2 = pontos[[idx2]]$y
-    
-    dist = dist + sqrt((x1 - x2)^2 + (y1 - y2)^2)
-  }
-  
-  idxf = tail(perm, 1)
-  xf = pontos[[idxf]]$x
-  yf = pontos[[idxf]]$y
-  idxi = perm[1]
-  xi = pontos[[idxi]]$x
-  yi = pontos[[idxi]]$y
-  
-  dist + sqrt((xf - xi)^2 + (yf - yi)^2)
-}
-
-run.test = function(cities = 10, R = 100, pop = 100, h = 100, mr = 0.1, er = 0.5, cr = 0.5,
-                    selection = 'fitness')
-{
-  pontos = get.circle.cities(cities, R)
-  #plot.circle(pontos)
-  dist = get.distance(pontos, 1:cities)
-  cat('Optimal distance: ', dist, '\n')
-  
-  heur = function(perm)
-  {
-    1/get.distance(pontos, perm)
-  }
-  
-  eurodistmat <- as.matrix(eurodist)
-  distance <- function(sq) 
-  {  
-      sq = c(sq, sq[1])
-      sq2 <- embed(sq, 2)
-      1/sum(eurodistmat[cbind(sq2[,2],sq2[,1])])
-  }
-  
-  gap = simpleGAP(heur, cities, selection = selection, cxRate = cr,
-                  mutRate = mr, eliteRate = er)
-  gap$evolve(h)
-  cat('GAP best distance: ', 1/max(gap$bestFit()), '\n')
-  best = gap$bestIndividual()
-  plot(gap$bestFit(), type = 'l', col = 'gold', main = paste('TSP -', cities, 'cities'), lwd = 2)
-  lines(gap$meanFit(), type = 'l', col = 'steelblue', lwd = 2)
-  grid(col = 'darkgrey')
 }
