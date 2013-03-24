@@ -226,7 +226,7 @@ GAReal = function (FUN, lb, ub, popSize = 100, mutRate = 0.01, cxRate = 0.9, eli
     m1 = apply(rowIdxs, 1, FUN.vec, mat = M)
     matrix(t(m1), byrow = F, ncol = ncol(M))
   }
-    
+  
   crossover.FUN = NULL
   if (is.function(crossover))
   	crossover.FUN = crossover
@@ -234,8 +234,13 @@ GAReal = function (FUN, lb, ub, popSize = 100, mutRate = 0.01, cxRate = 0.9, eli
   	crossover.FUN = switch(match.arg(crossover), blend = blendCrossover, two.points = twoPointsCrossover) 
   ############### END crossover function definitions #########################################
   
+<<<<<<< HEAD
   ############### BEG mutation function definitions #########################################
   mutateNoise = function(x, mutations)
+=======
+  ############### BEG mutation function definitions ##########################################
+  mutateNoise = function(x)
+>>>>>>> f4227ac025bc66125a87e6ea5dbc9d6909bffec1
   {			
     rows = sample(1:nrow(x), mutations, replace = TRUE)
     cols = sample(1:ncol(x), mutations, replace = TRUE)
@@ -252,7 +257,11 @@ GAReal = function (FUN, lb, ub, popSize = 100, mutRate = 0.01, cxRate = 0.9, eli
   	else
   		mutation.FUN = switch(match.arg(mutation), noise = mutateNoise)
   ############### END mutation function definitions #########################################
+<<<<<<< HEAD
       
+=======
+  
+>>>>>>> f4227ac025bc66125a87e6ea5dbc9d6909bffec1
   decode = function(x, lb, ub)
   {
     n = nrow(x)
@@ -283,15 +292,15 @@ GAReal = function (FUN, lb, ub, popSize = 100, mutRate = 0.01, cxRate = 0.9, eli
     iter <<- iter + 1      
     decodedPop = decode(currentPopulation, lb, ub)
     fitnessVec = apply(decodedPop, 1, FUN)
-    this.best = max(fitnessVec)			
-    bestFitnessVec[iter] <<- this.best			
+    max.idx = which.max(fitnessVec)
+    this.best = fitnessVec[max.idx]
+    bestFitnessVec[iter] <<- this.best
     meanFitnessVec[iter] <<- mean(fitnessVec)
     
     if (is.null(bestFit) || (this.best > bestFit))
     {
       bestFit <<- this.best
-      # [1]: pode haver mais de 1 instancia do melhor individuo
-      bestCX <<- decodedPop[which(fitnessVec == this.best)[1], ]
+      bestCX <<- decodedPop[max.idx, ]
     }
     
     nLeft = popSize
