@@ -1,1 +1,2 @@
-1-testar operadores
+1 - permitir inicializacao customizada da populacao.
+2 - Pensar em novos metodos para visualizar os resultados.
